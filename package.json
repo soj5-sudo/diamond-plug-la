@@ -1,9 +1,7 @@
 {
   "name": "diamond-plug-la",
-  "version": "1.0.0",
-  "description": "Custom fine jewelry platform — 3D viewer, AI assistant, Supabase backend",
-  "scripts": {
-    "start": "npx serve ."
-  },
+  "version": "3.0.0",
+  "description": "Custom fine jewelry platform — light luxury UI, 3D viewer, AI assistant, role-based portal",
+  "scripts": { "start": "npx serve ." },
   "private": true
 }
