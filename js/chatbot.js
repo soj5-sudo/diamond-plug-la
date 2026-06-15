@@ -56,30 +56,25 @@ function ruleBasedReply(t, context) {
   return "Tell me what you'd like to change — the metal, the stone size, the band, or the overall style — and I'll send precise notes to your designer.";
 }
 
-// ===== SVG art (no external images) =====
+// ===== SVG art (no external images) — light theme ===== 
 export function diamondArt(hue = 'gold') {
-  const c = hue === 'blue' ? '#7fd4e8' : '#c9a84c';
+  const c = hue === '#5b7fa6' ? '#5b7fa6' : '#b08d3f';
   return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-    <defs><radialGradient id="g${hue}" cx="50%" cy="40%"><stop offset="0%" stop-color="${c}" stop-opacity="0.25"/><stop offset="100%" stop-color="${c}" stop-opacity="0"/></radialGradient></defs>
-    <rect width="200" height="200" fill="url(#g${hue})"/>
-    <g fill="none" stroke="${c}" stroke-width="1" opacity="0.85">
-      <path d="M100 40 L150 85 L100 165 L50 85 Z"/>
-      <path d="M50 85 L150 85 M100 40 L78 85 L100 165 M100 40 L122 85 L100 165"/>
-      <path d="M78 85 L100 40 L122 85" stroke-width="0.6" opacity="0.6"/>
-    </g>
-    <g stroke="${c}" stroke-width="0.5" opacity="0.3">
-      <line x1="100" y1="10" x2="100" y2="32"/><line x1="170" y1="85" x2="190" y2="85"/><line x1="30" y1="85" x2="10" y2="85"/>
+    <rect width="200" height="200" fill="#f3ead6"/>
+    <g fill="none" stroke="${c}" stroke-width="1.1" opacity="0.85">
+      <path d="M100 50 L150 95 L100 165 L50 95 Z"/>
+      <path d="M50 95 L150 95 M100 50 L78 95 L100 165 M100 50 L122 95 L100 165"/>
+      <path d="M78 95 L100 50 L122 95" stroke-width="0.6" opacity="0.6"/>
     </g>
   </svg>`;
 }
 
 export function ringArt() {
   return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-    <defs><radialGradient id="rg" cx="50%" cy="45%"><stop offset="0%" stop-color="#c9a84c" stop-opacity="0.2"/><stop offset="100%" stop-color="#c9a84c" stop-opacity="0"/></radialGradient></defs>
-    <rect width="200" height="200" fill="url(#rg)"/>
-    <ellipse cx="100" cy="120" rx="48" ry="50" fill="none" stroke="#c9a84c" stroke-width="3" opacity="0.85"/>
-    <ellipse cx="100" cy="120" rx="40" ry="42" fill="none" stroke="#c9a84c" stroke-width="1" opacity="0.4"/>
-    <path d="M100 30 L120 60 L100 92 L80 60 Z" fill="none" stroke="#7fd4e8" stroke-width="1.4"/>
-    <path d="M80 60 L120 60 M100 30 L90 60 L100 92 M100 30 L110 60 L100 92" stroke="#7fd4e8" stroke-width="0.7" opacity="0.6" fill="none"/>
+    <rect width="200" height="200" fill="#f3ead6"/>
+    <ellipse cx="100" cy="125" rx="46" ry="48" fill="none" stroke="#b08d3f" stroke-width="3" opacity="0.85"/>
+    <ellipse cx="100" cy="125" rx="38" ry="40" fill="none" stroke="#b08d3f" stroke-width="1" opacity="0.4"/>
+    <path d="M100 40 L120 70 L100 100 L80 70 Z" fill="none" stroke="#b08d3f" stroke-width="1.4"/>
+    <path d="M80 70 L120 70 M100 40 L90 70 L100 100 M100 40 L110 70 L100 100" stroke="#b08d3f" stroke-width="0.7" opacity="0.6" fill="none"/>
   </svg>`;
 }

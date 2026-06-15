@@ -12,6 +12,9 @@ export const DB = {
   },
 
   // ---- users (your table: id, auth_id, name, email, role) ----
+  // Approval is encoded in the role column with no Supabase change:
+  //   'pending_client' / 'pending_designer'  → awaiting admin approval
+  //   'client' / 'designer'                  → approved
   async myProfile() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
@@ -25,9 +28,26 @@ export const DB = {
     }
     return data;
   },
+  // Matches approved + pending of a base role (e.g. 'client' → client + pending_client)
   async profilesByRole(role) {
+    const { data } = await supabase.from('users').select('*')
+      .in('role', [role, 'pending_' + role]).order('created_at');
+    return data || [];
+  },
+  async approvedByRole(role) {
     const { data } = await supabase.from('users').select('*').eq('role', role).order('created_at');
     return data || [];
+  },
+  async pendingUsers() {
+    const { data } = await supabase.from('users').select('*')
+      .in('role', ['pending_client', 'pending_designer']).order('created_at');
+    return data || [];
+  },
+  async approveUser(id, baseRole) {
+    await supabase.from('users').update({ role: baseRole }).eq('id', id);
+  },
+  async rejectUser(id) {
+    await supabase.from('users').delete().eq('id', id);
   },
   async profile(id) {
     const { data } = await supabase.from('users').select('*').eq('id', id).maybeSingle();
@@ -144,19 +164,45 @@ export const DB = {
   }
 };
 
-// ===== pricing engine =====
-export function estimatePrice(p, inp) {
-  const metalRate = p.metals[inp.metal] ?? 50;
-  const metalCost = metalRate * (parseFloat(inp.weight) || 0);
-  const stoneRate = p.stonePerCarat[inp.stone] ?? 0;
-  const clar = p.clarityMult[inp.clarity] ?? 1;
-  const col = p.colorMult[inp.color] ?? 1;
-  const cut = p.cutMult[inp.cut] ?? 1;
-  const stoneCost = stoneRate * (parseFloat(inp.carat) || 0) * clar * col * cut * (parseInt(inp.stoneCount) || 1);
-  const labor = p.laborBase * (p.complexityMult[inp.complexity] ?? 1);
-  const subtotal = metalCost + stoneCost + labor;
-  const total = subtotal * (1 + p.markupPct / 100);
+// ===== pricing engine — Diamond Plug math model =====
+// Gold:  spot $/oz ÷ 31.1 = pure $/g.  Karat purity: 14k=.585, 18k=.750, 24k=1.0
+// Client price/g = (pure $/g × purity) + setting/labor per g
+// Our cost/g     = (pure $/g × purity) + cost labor per g
+// Total = price/g × weight(g) + stones
+export const PRICE_DEFAULTS = {
+  goldSpotPerOz: 4000,   // editable by admin
+  settingPerGram: 50,    // labor charged to client, per gram
+  costPerGram: 15,       // our internal labor cost, per gram
+  purity: { '24k': 1.0, '18k': 0.750, '14k': 0.585, '10k': 0.417 },
+  stonePerCarat: { 'None': 0, 'Lab Diamond (CVD)': 420, 'Lab Diamond (HPHT)': 420, 'Natural Diamond': 4200, 'Moissanite': 180, 'Sapphire': 600, 'Emerald': 900, 'Ruby': 1100 }
+};
+
+export function estimatePrice(cfg, inp) {
+  const c = { ...PRICE_DEFAULTS, ...(cfg || {}) };
+  const purePerG = c.goldSpotPerOz / 31.1;                 // ~128.6
+  const purity = c.purity[inp.karat] ?? 0.585;
+  const goldPerG = purePerG * purity;                       // e.g. 14k ≈ 75.24
+  const weight = parseFloat(inp.weight) || 0;
+
+  const clientPerG = goldPerG + c.settingPerGram;           // gold + $50
+  const ourPerG = goldPerG + c.costPerGram;                 // gold + $15
+
+  const goldCost = goldPerG * weight;
+  const settingCost = c.settingPerGram * weight;
+  const stoneRate = c.stonePerCarat[inp.stone] ?? 0;
+  const stoneCost = stoneRate * (parseFloat(inp.carat) || 0) * (parseInt(inp.stoneCount) || 1);
+
+  const clientTotal = clientPerG * weight + stoneCost;
+  const ourTotal = ourPerG * weight + stoneCost;
+
   const r = n => Math.round(n * 100) / 100;
-  return { metalCost: r(metalCost), stoneCost: r(stoneCost), labor: r(labor), subtotal: r(subtotal), markup: r(total - subtotal), total: r(total) };
+  return {
+    purePerG: r(purePerG), goldPerG: r(goldPerG),
+    clientPerG: r(clientPerG), ourPerG: r(ourPerG),
+    goldCost: r(goldCost), settingCost: r(settingCost), stoneCost: r(stoneCost),
+    total: r(clientTotal),        // what the client sees
+    ourCost: r(ourTotal),         // admin-only
+    margin: r(clientTotal - ourTotal)
+  };
 }
 export const money = n => n == null ? '—' : '$' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
